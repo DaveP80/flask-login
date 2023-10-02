@@ -3,19 +3,41 @@
 {% block content%}
 
 <div class="container">
-    <div class="justify-content-center">
+    <div class="container text-center">
         {% if newuser %}
         <h2>Successfully authenticated</h2>
         <h3>{{ name }}</h3>
 
         {{ name }}
         {% endif %}
-        <div class="col-sm-8">
+        <div>
             <h2>user dashboard</h2>
-            <p><b>Name: </b> {{ user.name }}</p>
-            <p><b>Email: </b> {{ user.email }}</p>
-            <a href="/logout" class="btn btn-dark">Logout</a>
         </div>
+        <div class="d-flex flex-row">
+            <div class="py-2" style="padding-right: 1em;">
+                <p><b>Name: </b> {{ user.name }}</p>
+            </div>
+            <div class="p-2">
+                <p><b>Email: </b> {{ user.email }}</p>
+            </div>
+            <div class="" style="padding-left: 1em;">
+                <a href="{{ url_for('login', new='o') }}" class="btn btn-dark">Logout</a>
+            </div>
+        </div>
+        <main class="text-start">
+            <h2>Example content</h2>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra arcu lacus, sit amet posuere justo
+                vestibulum vel. Morbi dictum at quam eu porta. Nulla a lectus nec sapien facilisis scelerisque.
+                Pellentesque blandit quam porta nunc consequat pellentesque. Morbi nec fringilla arcu. Nunc faucibus
+                dapibus mollis. Aliquam erat volutpat. Phasellus sollicitudin bibendum enim, non rutrum dui varius non.
+                Aliquam erat volutpat. Nam et dui placerat, dapibus lectus at, elementum sapien. Vestibulum dapibus
+                ligula non risus accumsan, a egestas elit efficitur. Nulla ligula elit, luctus vel interdum a, varius
+                sit amet tortor. Praesent vel commodo urna. Nullam massa orci, ullamcorper ut elit iaculis, dictum
+                luctus velit. Duis consequat imperdiet nulla et placerat. Etiam ut erat eget leo consequat laoreet nec
+                sed ex.
+            </p>
+        </main>
 
     </div>
 </div>

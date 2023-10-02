@@ -1,5 +1,8 @@
 from flask import Flask, request,render_template, redirect, session, g, flash, request
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, BooleanField
+from wtforms.validators import DataRequired, Email
 from helper import read_blocklist_file
 import ssl
 import smtplib
@@ -7,39 +10,58 @@ import bcrypt
 import uuid
 import datetime
 from datetime import timedelta, datetime
-from sqlalchemy.sql import func
+# from sqlalchemy.sql import func
 from smtplib import SMTPAuthenticationError
 from email.message import EmailMessage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
+# PSQL
+from sqlalchemy import create_engine
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.sql import text
+from sqlalchemy.orm import sessionmaker
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
-db = SQLAlchemy(app)
-app.secret_key = 'secret_key'
 app.permanent_session_lifetime = timedelta(days=30)
+db = SQLAlchemy(app)
 
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(100), nullable=False)
-    token = db.Column(db.String(100), unique=True)
-    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    __tablename__ = 'users'
 
-    def __init__(self,name, email, password, token):
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(100), unique=True)
+    password = Column(String(100), nullable=False)
+    token = Column(String(100), unique=True)
+    created_at = Column(DateTime, server_default=text('NOW()'), nullable=False)
+
+    def __init__(self, name, email, password, token):
         self.name = name
         self.email = email
         self.password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         self.token = token
-        self.created_at = datetime.utcnow()
 
     def check_password(self,password):
         return bcrypt.checkpw(password.encode('utf-8'),self.password.encode('utf-8'))
 
 with app.app_context():
     db.create_all()
+
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    remember = BooleanField('Remember Me', default=True)
+
+class RegisterForm(FlaskForm):
+    def my_length_check(form, field):
+        if len(field.data) < 5:
+            raise ValidationError('Field must more than 4 characters')
+    name = StringField('Name', validators=[DataRequired(), my_length_check])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+
 
 def writeEmail(address, name, token):
     nolist = read_blocklist_file(app)
@@ -110,7 +132,7 @@ def writeEmail(address, name, token):
 def authNewU(t):
     now = datetime.utcnow()
     try:
-        findU = User.query.filter_by(token=t).first()
+        findU = db.session.query(User).filter_by(token=t).first()
     except:
         flash('invalid registration')
         print('incorrect auth request')
@@ -128,15 +150,15 @@ def authNewU(t):
             try:
                 # Email new token if auth is too late after 14 days
                 newtoken = str(uuid.uuid4())
-                db.session.query(User).filter_by(token=t).update({"created_at": now, "token": newtoken})
-                db.session.commit()
+                user_to_update = db.session.query(User).filter_by(token=t).first()
+                if user_to_update:
+                    user_to_update.created_at = now
+                    user_to_update.token = newtoken
                 writeEmail(findU.email, findU.name, newtoken)
             except Exception as e:
                 print(e)
                 return None
             flash("new email sent")
-
-# Commit the changes to the database
             db.session.commit()
             return None
     else:
@@ -156,10 +178,11 @@ def index():
     return render_template('index.html', home=True)
 
 def load_user(id):
-    return User.query.filter_by(id=id).first()
+    return db.session.query(User).filter_by(id=id).first()
 
 @app.route('/register',methods=['GET','POST'])
 def register():
+    regform = RegisterForm()
     if request.method == 'GET':
         t = request.args.get('t', None)
         if t:
@@ -169,12 +192,12 @@ def register():
                 g.user = authres
                 return render_template('dashboard.html', user=g.user, newuser=True) 
 
-    if request.method == 'POST':
+    if request.method == 'POST' and regform.validate_on_submit:
         if not g.user:
             # handle request
-            name = request.form['name']
-            email = request.form['email']
-            password = request.form['password']
+            name = regform.name.data
+            email = regform.email.data
+            password = regform.password.data
             token = None
             try:
                 token = str(uuid.uuid4())
@@ -182,35 +205,35 @@ def register():
                 db.session.add(new_user)
                 db.session.commit()
             except Exception as e:
+                print(e)
                 flash('please register with unique email address')
-                return render_template('register.html')
+                return render_template('register.html', regform=regform)
             response = writeEmail(email, name, token)
             if isinstance(response, bool) and response:
                 flash('confirmation email sent')
             if not response:
-                with db.session.begin(subtransactions=True):
-                    user_to_delete = User.query.filter_by(email=email.strip()).first()
-                    if user_to_delete:
-                        db.session.delete(user_to_delete)
-                        db.session.commit()
-                        flash('email confirmation error')
-                        return render_template('register.html')
+                user_to_delete = db.session.query(User).filter_by(email=email).first()
+                if user_to_delete:
+                    db.session.delete(user_to_delete)
+                    db.session.commit()
+                    flash('email confirmation error')
+                    return render_template('register.html', regform=regform)
         if g.user:
             pass
-        return redirect('/login')
+        return redirect('/login/login')
 
-    return render_template('register.html')
+    return render_template('register.html', regform=regform)
 
-@app.route('/login',methods=['GET','POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        remember_me = 'remember_me' in request.form
+@app.route('/login/<new>',methods=['GET','POST'])
+def login(new):
+    form = LoginForm()
+    if request.method == 'POST' and form.validate_on_submit:
+        email = form.email.data
+        password = form.password.data
+        remember_me = form.remember
 
         if not g.user:
-
-            g.user = User.query.filter_by(email=email).first()
+            g.user = db.session.query(User).filter_by(email=email).first()
             
             if g.user and g.user.check_password(password):
                 session['user_id'] = g.user.id  # Store user ID in the session
@@ -219,11 +242,19 @@ def login():
                 return redirect('/dashboard')
             elif not g.user or not g.user.check_password(password):
                 g.user = None
-                return render_template('login.html',error='Invalid user')
+                return render_template('login.html',error='Invalid user', form=form)
         elif g.user:
-            return render_template('login.html', user=g.user)
+            return render_template('login.html', user=g.user, form=form)
     if request.method == 'GET':
-        return render_template('login.html', user=g.user)
+        if new=='o':
+            fla = False
+            if g.user:
+                fla = True
+            session.pop('user_id',None)
+            g.user = None
+            if fla:
+                flash('logged out')
+        return render_template('login.html', user=g.user, form=form)
 
 @app.route('/dashboard')
 def dashboard():
@@ -233,7 +264,7 @@ def dashboard():
 def logout():
     session.pop('user_id',None)
     g.user = None
-    return redirect('/login')
+    return redirect('/login/login')
 
 if __name__ == '__main__':
     app.run(debug=True)
