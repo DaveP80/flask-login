@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField
 from wtforms.validators import DataRequired, Email
-from helper import read_blocklist_file
+from helper import read_blocklist_file, isValid
 import ssl
 import smtplib
 import bcrypt
@@ -20,7 +20,6 @@ from email.mime.application import MIMEApplication
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.sql import text
-from sqlalchemy.orm import sessionmaker
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
@@ -55,10 +54,7 @@ class LoginForm(FlaskForm):
     remember = BooleanField('Remember Me', default=True)
 
 class RegisterForm(FlaskForm):
-    def my_length_check(form, field):
-        if len(field.data) < 5:
-            raise ValidationError('Field must more than 4 characters')
-    name = StringField('Name', validators=[DataRequired(), my_length_check])
+    name = StringField('Name', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
 
@@ -199,6 +195,9 @@ def register():
             email = regform.email.data
             password = regform.password.data
             token = None
+            if not isValid(email):
+                flash("invalid email pattern")
+                return render_template('register.html', regform=regform)
             try:
                 token = str(uuid.uuid4())
                 new_user = User(name=name.strip(),email=email.strip(),password=password, token=token)
