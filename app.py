@@ -36,6 +36,7 @@ class User(db.Model):
     token = Column(String(100), unique=True)
     created_at = Column(DateTime, server_default=text('NOW()'), nullable=False)
 
+
     def __init__(self, name, email, password, token):
         self.name = name
         self.email = email
@@ -44,6 +45,17 @@ class User(db.Model):
 
     def check_password(self,password):
         return bcrypt.checkpw(password.encode('utf-8'),self.password.encode('utf-8'))
+
+class AuthUser(db.Model):
+    __tablename__ = 'auth_users'
+
+    user_id = db.Column(db.Integer, primary_key=True)
+    user_email = db.Column(db.String(100), unique=True, nullable=False)
+    is_auth = db.Column(db.Boolean, default=False)
+
+    def __init__(self, user_email, is_auth=False):
+        self.user_email = user_email
+        self.is_auth = is_auth
 
 with app.app_context():
     db.create_all()
@@ -79,20 +91,14 @@ def writeEmail(address, name, token):
             </head>
             <body>
                 <p>Hello {name},</p>
-                
-                <p>Thank you for registering an account with us. Here are your registration details:</p>
-                
+                <p>Thank you for registering an account with us. Here are your registration details:</p>    
                 <ul>
                     <li><strong>Name:</strong> {name}</li>
                     <li><strong>Email:</strong> {address}</li>
                 </ul>
-                
                 <p>To complete your registration, please click the following link:</p>
-                
                 <p><a href="http://127.0.0.1:5000/register?t={token}">Complete Registration</a></p>
-                
-                <p>If you did not create an account with us, please ignore this email.</p>
-                
+                <p>If you did not create an account with us, please ignore this email.</p>        
                 <p>Best regards,<br>Your Company Name</p>
             </body>
             </html>
@@ -184,9 +190,20 @@ def register():
         if t:
             authres = authNewU(t)
             if authres:
-                session['user_id'] = authres.id
-                g.user = authres
-                return render_template('dashboard.html', user=g.user, newuser=True) 
+                try:
+                    ret_user = AuthUser.query.filter_by(user_email=authres.email).first()
+                    if ret_user and ret_user.is_auth == False:
+                        ret_user.is_auth = True
+                        db.session.commit()
+                        session['user_id'] = authres.id
+                        g.user = authres
+                        return render_template('dashboard.html', user=g.user, newuser=True)
+                    else:
+                        flash('error validating account')
+                except Exception as e:
+                    print(e)
+                    flash("authorizing new user error")
+                    return render_template('dashboard.html', user=g.user, newuser=False) 
 
     if request.method == 'POST' and regform.validate_on_submit:
         if not g.user:
@@ -232,15 +249,19 @@ def login(new):
         remember_me = form.remember
 
         if not g.user:
-            g.user = db.session.query(User).filter_by(email=email).first()
+            tempu = db.session.query(User).filter_by(email=email).first()
+            au_user = AuthUser.query.filter_by(user_email=email).first()
             
-            if g.user and g.user.check_password(password):
+            if tempu and tempu.check_password(password) and au_user and au_user.is_auth==True:
+                g.user = tempu
                 session['user_id'] = g.user.id  # Store user ID in the session
                 if not remember_me:
                     session.permanent = False  # Make the session permanent
                 return redirect('/dashboard')
-            elif not g.user or not g.user.check_password(password):
-                g.user = None
+            elif tempu and tempu.check_password(password) and au_user.is_auth==False:
+                flash('check email inbox for validation')
+                return render_template('login.html',error='Valid Email first', form=form)
+            elif not tempu or not tempu.check_password(password) or not au_user:
                 return render_template('login.html',error='Invalid user', form=form)
         elif g.user:
             return render_template('login.html', user=g.user, form=form)
