@@ -1,4 +1,4 @@
-from flask import Flask, request,render_template, redirect, session, g, flash, request
+from flask import Flask, request,render_template, redirect, session, g, flash, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField
@@ -197,13 +197,12 @@ def register():
                         db.session.commit()
                         session['user_id'] = authres.id
                         g.user = authres
-                        return render_template('dashboard.html', user=g.user, newuser=True)
+                        return redirect(url_for('dashboard', new=1))
                     else:
                         flash('error validating account')
                 except Exception as e:
                     print(e)
                     flash("authorizing new user error")
-                    return render_template('dashboard.html', user=g.user, newuser=False) 
 
     if request.method == 'POST' and regform.validate_on_submit:
         if not g.user:
@@ -278,7 +277,8 @@ def login(new):
 
 @app.route('/dashboard')
 def dashboard():
-        return render_template('dashboard.html',user=g.user)
+        n = request.args.get('new')
+        return render_template('dashboard.html',user=g.user, newuser=n)
 
 @app.route('/logout')
 def logout():

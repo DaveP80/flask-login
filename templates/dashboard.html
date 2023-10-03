@@ -5,10 +5,8 @@
 <div class="container">
     <div class="container text-center">
         {% if newuser %}
-        <h2>Successfully authenticated</h2>
-        <h3>{{ name }}</h3>
-
-        {{ name }}
+        <h2 class="text-success">Successfully authenticated</h2>
+        <h3>{{ user.name }}</h3>
         {% endif %}
         <div>
             <h2>user dashboard</h2>
