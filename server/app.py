@@ -79,6 +79,12 @@ def writeEmail(address, name, token):
         password = app.config['PASS']
         sender_name = 'coding in py'
         try:
+            if request.host == '127.0.0.1:5000':
+                # Development environment URL
+                base_url = 'http://127.0.0.1:5000'
+            else:
+                # Production environment URL
+                base_url = 'https://login-tfe4zqdz6a-ue.a.run.app'
             htmls = ""
             #Change this name if you want to be presented differently in emails
             html = f"""
@@ -97,7 +103,7 @@ def writeEmail(address, name, token):
                     <li><strong>Email:</strong> {address}</li>
                 </ul>
                 <p>To complete your registration, please click the following link:</p>
-                <p><a href="http://127.0.0.1:5000/register?t={token}">Complete Registration</a></p>
+                <p><a href="{base_url}/register?t={token}">Complete Registration</a></p>
                 <p>If you did not create an account with us, please ignore this email.</p>        
                 <p>Best regards,<br>Your Company Name</p>
             </body>
