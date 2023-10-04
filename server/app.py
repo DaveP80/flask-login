@@ -4,6 +4,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField
 from wtforms.validators import DataRequired, Email
 from helper import read_blocklist_file, isValid
+import os
 import ssl
 import smtplib
 import bcrypt
@@ -35,7 +36,6 @@ class User(db.Model):
     password = Column(String(100), nullable=False)
     token = Column(String(100), unique=True)
     created_at = Column(DateTime, server_default=text('NOW()'), nullable=False)
-
 
     def __init__(self, name, email, password, token):
         self.name = name
@@ -108,7 +108,6 @@ def writeEmail(address, name, token):
             msg['From'] = f'{sender_name} • <{username}>'
             recipients = address
             msg['To'] = address
-
             # Attach HTML to the email
             body = MIMEText(html, 'html')
             msg.attach(body)
@@ -236,7 +235,6 @@ def register():
         if g.user:
             pass
         return redirect('/login/login')
-
     return render_template('register.html', regform=regform)
 
 @app.route('/login/<new>',methods=['GET','POST'])
@@ -259,9 +257,10 @@ def login(new):
                 return redirect('/dashboard')
             elif tempu and tempu.check_password(password) and au_user.is_auth==False:
                 flash('check email inbox for validation')
-                return render_template('login.html',error='Valid Email first', form=form)
+                return render_template('login.html', form=form)
             elif not tempu or not tempu.check_password(password) or not au_user:
-                return render_template('login.html',error='Invalid user', form=form)
+                flash('invalid email or password')
+                return render_template('login.html', form=form)
         elif g.user:
             return render_template('login.html', user=g.user, form=form)
     if request.method == 'GET':
