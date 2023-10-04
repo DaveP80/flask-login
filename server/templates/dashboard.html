@@ -9,7 +9,7 @@
         <h3>{{ user.name }}</h3>
         {% endif %}
         <div>
-            <h2>user dashboard</h2>
+            <h2>dashboard</h2>
         </div>
         <div class="d-flex flex-row">
             <div class="py-2" style="padding-right: 1em;">
@@ -18,6 +18,11 @@
             <div class="p-2">
                 <p><b>Email: </b> {{ user.email }}</p>
             </div>
+            {% if user %}
+            <div class="px-1">
+                <a href="{{ url_for('settings', username=user.name) }}" class="btn btn-secondary">Edit</a>
+            </div>
+            {% endif %}
             <div class="px-1">
                 <a href="{{ url_for('login', new='o') }}" class="btn btn-dark">Logout</a>
             </div>

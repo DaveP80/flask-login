@@ -1,0 +1,80 @@
+{% extends "index.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h1>User Settings</h1>
+    <p><b>Name:</b> {{ user.name }}</p>
+    <p><b>Email:</b> {{ user.email }}</p>
+    <button type="button" class="btn btn-secondary" id="showModalBtn">Delete User</button>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="mt-3">
+        {% for message in messages %}
+        <div class="alert alert-info">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+</div>
+<!-- Delete User Confirmation Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Delete User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="close" id="cbtn"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete your account?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" aria-label="close" data-bs-dismiss="modal"
+                    id="ccbtn">Cancel</button>
+                <a href="{{ url_for('settings', username=user.name+'Delete') }}" class="btn btn-danger"
+                    id="xbtn">Delete</a> <!-- Replace with your delete route -->
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Get the button element by its ID
+    var showModalBtn = document.getElementById("showModalBtn");
+
+    // Get the modal element by its ID
+    var myModal = document.getElementById("confirmDeleteModal");
+
+    // Add a click event listener to the button
+    showModalBtn.addEventListener("click", function () {
+        // Show the modal
+        myModal.style.display = "block";
+        myModal.className += " show";
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+        var xbtn = document.getElementById('xbtn');
+        var cbtn = document.getElementById('cbtn');
+        var ccbtn = document.getElementById('ccbtn');
+
+        xbtn.addEventListener('click', function () {
+            // Remove 'show' class and hide the modal
+            myModal.classList.remove('show');
+            myModal.style.display = 'none';
+        });
+        cbtn.addEventListener('click', function () {
+            // Remove 'show' class and hide the modal
+            myModal.classList.remove('show');
+            myModal.style.display = 'none';
+        });
+        ccbtn.addEventListener('click', function () {
+            // Remove 'show' class and hide the modal
+            myModal.classList.remove('show');
+            myModal.style.display = 'none';
+        });
+    });
+    // Add a click event listener to the modal backdrop
+    myModal.addEventListener("click", function (event) {
+        if (event.target === myModal) {
+            closeModal();
+        }
+    });
+</script>
+{% endblock %}

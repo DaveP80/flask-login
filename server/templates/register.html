@@ -2,8 +2,7 @@
 {% block content %}
 
 <div class="container">
-    <div class="container">
-        <div class="mt-1">
+    <div class="container mt-1">
             <h2>Register form</h2>
             <form method="POST" href="/register" class="form-signup">
                 {{ regform.hidden_tag() }}
@@ -24,7 +23,6 @@
                 <button type="submit" class="btn btn-primary btn-block mt-2">Submit</button>
                 <a href="/login/login" class="btn btn-primary mt-2">Login</a>
             </form>
-        </div>
         {% with messages = get_flashed_messages() %}
         {% if messages %}
         <div class="mt-1">

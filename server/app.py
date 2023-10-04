@@ -278,6 +278,30 @@ def login(new):
 def dashboard():
         n = request.args.get('new')
         return render_template('dashboard.html',user=g.user, newuser=n)
+# Delete logged in user, on success redirect to register page
+@app.route('/settings/<username>')
+def settings(username):
+        stderrmsg = 'sql server error'
+        if not g.get('user', None):
+            return redirect('/login/login')
+        if g.user and g.user.name + "Delete" == username:
+            try:
+                user_to_delete = db.session.query(User).filter_by(id=g.user.id).first()
+                aa_user = AuthUser.query.filter_by(user_id=g.user.id).first()
+                if user_to_delete and aa_user:
+                    if aa_user.is_auth == True:
+                        aa_user.is_auth = False
+                        db.session.delete(user_to_delete)
+                        db.session.commit()
+                        g.user = None
+                        return redirect('/register')
+                    else:
+                        flash(stderrmsg)
+                else:
+                    flash(stderrmsg)
+            except:
+                flash(stderrmsg)
+        return render_template('settings.html', user=g.user)
 
 @app.route('/logout')
 def logout():
