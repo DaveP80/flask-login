@@ -15,6 +15,6 @@ app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 ```
 Deploy
 ```bash
-gcloud builds submit --tag gcr.io/pdfloader0/login
-gcloud run deploy --image gcr.io/pdfloader0/login:latest
+gcloud builds submit --tag gcr.io/<PROJECTID>/login
+gcloud run deploy --image gcr.io/<PROJECTID>/login:latest
 ```
