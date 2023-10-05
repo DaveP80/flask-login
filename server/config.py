@@ -9,6 +9,7 @@ class Config:
     SECRET_KEY = environ.get('SECRET_KEY')
     PASS = environ.get('PASS')
     USERNAME = environ.get('USERNAME')
+    ADMIN = environ.get('ADMIN')
     SQLALCHEMY_DATABASE_URI = environ.get('SQLALCHEMY_DATABASE_URI')
     IMG_FOLDER = 'img'
     TEMPLATES_FOLDER = 'templates'

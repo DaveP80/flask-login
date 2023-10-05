@@ -4,6 +4,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField
 from wtforms.validators import DataRequired, Email
 from helper import read_blocklist_file, isValid
+from forms.forms import *
 import os
 import ssl
 import smtplib
@@ -250,6 +251,10 @@ def login(new):
         email = form.email.data
         password = form.password.data
         remember_me = form.remember
+        # When a site admin submits login credentials.
+        if email==app.config['USERNAME'] and password==app.config['ADMIN']:
+            g.user = { "id": -1, "name": "admin", "email": app.config['USERNAME'], "password": app.config['ADMIN']}
+            return redirect('/admin')
 
         if not g.user:
             tempu = db.session.query(User).filter_by(email=email).first()
@@ -308,7 +313,29 @@ def settings(username):
             except:
                 flash(stderrmsg)
         return render_template('settings.html', user=g.user)
+# use admin route to lookup auth email and remove from database.
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+    lookupform = AdminForm()
+    if g.user.id is not -1 and g.user.email is not app.config['USERNAME']:
+        return redirect('/')
+    if request.method == 'POST' and lookupform.validate_on_submit:
+        lookupemail = lookupform.email.data
+        try:
+            fempu = db.session.query(User).filter_by(email=lookupemail).first()
+            fa_user = AuthUser.query.filter_by(user_email=lookupemail).first()
 
+
+            # if fempu:
+            #     db.session.delete(fempu)
+            # if fa_user:
+            #     db.session.delete(fempu)
+            # if fempu or fa_user:
+            #     db.session.commit()
+        except Exception as e:
+            print(e)
+    return render_template('admin.html', users=fempu, auth_users=fa_user, lookupform=lookupform)
+# utility link to logout session user.
 @app.route('/logout')
 def logout():
     session.pop('user_id',None)

@@ -1,0 +1,72 @@
+{% extends "index.html" %}
+{% block content %}
+<div class="container">
+    <div class="container mt-2">
+        <p style="font-size: larger;">Admin: lookup with email</p>
+        <form method="POST" href="/admin" class="form-signin mt-2">
+            {{ lookupform.hidden_tag() }}
+            <div class="form-group">
+                {{ lookupform.email.label(class="sr-only") }}
+                {{ lookupform.email(class="form-control", placeholder="Email", autofocus="autofocus")
+                }}
+            </div>
+            <button type="submit" class="btn btn-primary btn-block mt-1">Lookup</button>
+        </form>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="mt-3">
+            {% for message in messages %}
+            <div class="alert alert-info">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% if users %}
+        <div class="container">
+            <div class="container">
+                <h3>Users</h3>
+            </div>
+            <table class="table table-striped bordered-table">
+                <thead>
+                    <tr>
+                        <th>name</th>
+                        <th>email</th>
+                        <th>token</th>
+                        <th>created_at</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ users.name }}</td>
+                        <td>{{ users.email }}</td>
+                        <td>{{ users.token }}</td>
+                        <td>{{ users.created_at }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        {% if auth_users %}
+        <div class="container">
+            <div class="container">
+                <h3>Auth Users</h3>
+            </div>
+            <table class="table table-striped bordered-table">
+                <thead>
+                    <tr>
+                        <th>user_email</th>
+                        <th>is_auth</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ auth_users.user_email }}</td>
+                        <td>{{ auth_users.is_auth }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div> 
+</div>
+{% endblock %}
