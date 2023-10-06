@@ -317,15 +317,15 @@ def settings(username):
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     lookupform = AdminForm()
-    if g.user.id is not -1 and g.user.email is not app.config['USERNAME']:
+    fempu = None
+    fa_user = None
+    if g.user is not None and g.user['id'] != -1 and g.user['email'] != app.config['USERNAME']:
         return redirect('/')
     if request.method == 'POST' and lookupform.validate_on_submit:
         lookupemail = lookupform.email.data
         try:
             fempu = db.session.query(User).filter_by(email=lookupemail).first()
             fa_user = AuthUser.query.filter_by(user_email=lookupemail).first()
-
-
             # if fempu:
             #     db.session.delete(fempu)
             # if fa_user:
@@ -347,4 +347,4 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    app.run(debug=True)
