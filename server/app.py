@@ -1,8 +1,5 @@
 from flask import Flask, request,render_template, redirect, session, g, flash, request, url_for
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField
-from wtforms.validators import DataRequired, Email
 from helper import read_blocklist_file, isValid
 from forms.forms import *
 import os
@@ -253,7 +250,7 @@ def login(new):
         remember_me = form.remember
         # When a site admin submits login credentials.
         if email==app.config['USERNAME'] and password==app.config['ADMIN']:
-            g.user = { "id": -1, "name": "admin", "email": app.config['USERNAME'], "password": app.config['ADMIN']}
+            g.user = { "id": -1, "admin_name": "admin", "email": app.config['USERNAME'], "password": app.config['ADMIN']}
             return redirect('/admin')
 
         if not g.user:
@@ -319,7 +316,7 @@ def admin():
     lookupform = AdminForm()
     fempu = None
     fa_user = None
-    if g.user is not None and g.user['id'] != -1 and g.user['email'] != app.config['USERNAME']:
+    if g.user is not None and 'admin_name' not in g.user:
         return redirect('/')
     if request.method == 'POST' and lookupform.validate_on_submit:
         lookupemail = lookupform.email.data

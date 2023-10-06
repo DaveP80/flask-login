@@ -29,7 +29,7 @@
                             src="{{ url_for('static', filename='follow.png') }}">
                     </a>
                 </div>
-                        {% if g.user %}
+                        {% if g.user and g.user.name %}
                         <div style="color: #DDDDDD;">
                                 {{ g.user.name }} is signed in
                         </div>
