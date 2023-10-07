@@ -1,6 +1,7 @@
 from flask import Flask, request,render_template, redirect, session, g, flash, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from helper import read_blocklist_file, isValid
+from functools import wraps
 from forms.forms import *
 import os
 import ssl
@@ -248,11 +249,6 @@ def login(new):
         email = form.email.data
         password = form.password.data
         remember_me = form.remember
-        # When a site admin submits login credentials.
-        if email==app.config['USERNAME'] and password==app.config['ADMIN']:
-            g.user = { "id": -1, "admin_name": "admin", "email": app.config['USERNAME'], "password": app.config['ADMIN']}
-            return redirect('/admin')
-
         if not g.user:
             tempu = db.session.query(User).filter_by(email=email).first()
             au_user = AuthUser.query.filter_by(user_email=email).first()
@@ -276,6 +272,7 @@ def login(new):
             fla = False
             if g.user:
                 fla = True
+            session.pop('adminlogin', None)
             session.pop('user_id',None)
             g.user = None
             if fla:
@@ -310,28 +307,80 @@ def settings(username):
             except:
                 flash(stderrmsg)
         return render_template('settings.html', user=g.user)
-# use admin route to lookup auth email and remove from database.
-@app.route('/admin', methods=['GET', 'POST'])
-def admin():
-    lookupform = AdminForm()
-    fempu = None
-    fa_user = None
-    if g.user is not None and 'admin_name' not in g.user:
-        return redirect('/')
-    if request.method == 'POST' and lookupform.validate_on_submit:
-        lookupemail = lookupform.email.data
-        try:
-            fempu = db.session.query(User).filter_by(email=lookupemail).first()
-            fa_user = AuthUser.query.filter_by(user_email=lookupemail).first()
-            # if fempu:
-            #     db.session.delete(fempu)
-            # if fa_user:
-            #     db.session.delete(fempu)
-            # if fempu or fa_user:
-            #     db.session.commit()
-        except Exception as e:
-            print(e)
-    return render_template('admin.html', users=fempu, auth_users=fa_user, lookupform=lookupform)
+# Define a custom decorator to check if the user is logged in as an admin
+def admin_login_required(func):
+    @wraps(func)
+    def decorated_view(*args, **kwargs):
+        # Check if the user is logged in as an admin
+        if not session.get('adminlogin'):
+            return redirect('/admin/login')
+        return func(*args, **kwargs)
+    return decorated_view
+
+@app.route('/admin/<route>', methods=['GET', 'POST'])
+def admin(route):
+    if route == 'login':
+        lookupform = None
+        inform = AdminLoginForm()
+        if request.method == 'POST' and inform.validate_on_submit:
+            if app.config['ADMIN'] == inform.password.data and app.config['USERNAME'] == inform.email.data:
+                session['adminlogin'] = True
+                session.permanent = False
+                return redirect('/admin/lookup')
+    elif route == 'lookup':
+        # Use the custom decorator to protect the 'lookup' route
+        @admin_login_required
+        def lookup():
+            lookupform = AdminForm()
+            fempu = None
+            fa_user = None
+            tempstring = None
+            admindelstr = None
+            # remove all records of user and email from databases
+            if request.args.get('del'):
+                try:
+                    q = request.args.get('del')
+                    fi_user = AuthUser.query.filter_by(user_id=q).first()
+                    if fi_user:
+                        db.session.delete(fi_user)
+                        db.session.commit()
+                        fa_user = None
+                        flash('user removed from all logs')
+                except:
+                    flash('database or query string error')
+            # remove/deactivate user using the admin login
+            if request.args.get('admin_del'):
+                try:
+                    z = request.args.get('admin_del')
+                    user_to_delete = db.session.query(User).filter_by(id=z).first()
+                    aa_user = AuthUser.query.filter_by(user_id=z).first()
+                    if user_to_delete and aa_user:
+                        if aa_user.is_auth == True:
+                            aa_user.is_auth = False
+                            db.session.delete(user_to_delete)
+                            db.session.commit()
+                            fempu = None
+                            fa_user = aa_user
+                            flash('user is deactivated')
+                        else: flash('database or query string error')
+                except:
+                    flash('database or query string error')
+            
+            if request.method == 'POST' and lookupform and lookupform.validate_on_submit:
+                lookupemail = lookupform.email.data
+                try:
+                    fempu = db.session.query(User).filter_by(email=lookupemail).first()
+                    fa_user = AuthUser.query.filter_by(user_email=lookupemail).first()
+                    if not fempu and fa_user:
+                        tempstring = f'/admin/lookup?del={fa_user.user_id}'
+                    if fempu and fa_user and fa_user.is_auth:
+                        admindelstr = f'/admin/lookup?admin_del={fempu.id}'
+                except Exception as e:
+                    print(e)
+            return render_template('admin.html', users=fempu, auth_users=fa_user, lookupform=lookupform, tempstring=tempstring, admindelstr=admindelstr)
+        
+        return lookup()
+    return render_template('admin.html', lookupform=lookupform, inform=inform)
 # utility link to logout session user.
 @app.route('/logout')
 def logout():
