@@ -11,5 +11,6 @@ class Config:
     USERNAME = environ.get('USERNAME')
     ADMIN = environ.get('ADMIN')
     SQLALCHEMY_DATABASE_URI = environ.get('SQLALCHEMY_DATABASE_URI')
+    URL = environ.get('URL')
     IMG_FOLDER = 'img'
     TEMPLATES_FOLDER = 'templates'

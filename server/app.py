@@ -83,7 +83,7 @@ def writeEmail(address, name, token):
                 base_url = 'http://127.0.0.1:5000'
             else:
                 # Production environment URL
-                base_url = 'https://login-tfe4zqdz6a-ue.a.run.app'
+                base_url = app.config['URL']
             htmls = ""
             #Change this name if you want to be presented differently in emails
             html = f"""

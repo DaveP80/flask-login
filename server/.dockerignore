@@ -2,3 +2,4 @@ schema.sql
 README.md
 *.DS_Store
 venv
+*__pycache__
