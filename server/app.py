@@ -185,7 +185,7 @@ def index():
 
 def load_user(id):
     return db.session.query(User).filter_by(id=id).first()
-
+# Create new account
 @app.route('/register',methods=['GET','POST'])
 def register():
     regform = RegisterForm()
@@ -212,7 +212,7 @@ def register():
         if not g.user:
             # handle request
             name = regform.name.data
-            email = regform.email.data
+            email = regform.email.data.strip()
             password = regform.password.data
             token = None
             if not isValid(email):
@@ -220,7 +220,7 @@ def register():
                 return render_template('register.html', regform=regform)
             try:
                 token = str(uuid.uuid4())
-                new_user = User(name=name.strip(),email=email.strip(),password=password, token=token)
+                new_user = User(name=name.strip(),email=email,password=password, token=token)
                 db.session.add(new_user)
                 db.session.commit()
             except Exception as e:
@@ -231,9 +231,11 @@ def register():
             if isinstance(response, bool) and response:
                 flash('confirmation email sent')
             if not response:
+                em_user = AuthUser.query.filter_by(user_email=email).first()
                 user_to_delete = db.session.query(User).filter_by(email=email).first()
-                if user_to_delete:
+                if user_to_delete and em_user:
                     db.session.delete(user_to_delete)
+                    db.session.delete(em_user)
                     db.session.commit()
                     flash('email confirmation error')
                     return render_template('register.html', regform=regform)

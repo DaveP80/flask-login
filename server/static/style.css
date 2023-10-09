@@ -1,0 +1,41 @@
+
+#usrloggedin {
+    width: 100%;
+    white-space: nowrap;
+    color: #DDDDDD;
+}
+@media (max-width: 700px) {
+    #usrloggedin {
+        width: auto;
+        white-space: unset;
+    }
+}
+#navbarCollapse {
+  margin-left: 65%;
+}
+
+@media (max-width: 1550px) {
+  #navbarCollapse {
+    margin-left: 55%;
+  }
+}
+@media (max-width: 1300px) {
+  #navbarCollapse {
+    margin-left: 45%;
+  }
+}
+@media (max-width: 870px) {
+  #navbarCollapse {
+    margin-left: 35%;
+  }
+}
+@media (max-width: 640px) {
+  #navbarCollapse {
+    margin-left: 30%;
+  }
+}
+@media (max-width: 570px) {
+  #navbarCollapse {
+    margin-left: auto;
+  }
+}

@@ -8,31 +8,57 @@
                 {{ regform.hidden_tag() }}
                 <div class="form-group">
                     {{ regform.name.label(class="sr-only") }}
-                    {{ regform.name(class="form-control", placeholder="your name", type="text", minlength="4")
+                    {{ regform.name(class="form-control", placeholder="your name", type="text", minlength="4", id="name")
                     }}
                 </div>
                 <div class="form-group mt-2">
                     {{ regform.email.label(class="sr-only") }}
-                    {{ regform.email(class="form-control", placeholder="email", type="email")
+                    {{ regform.email(class="form-control", placeholder="email", type="email", id="email")
                     }}
                 </div>
                 <div class="form-group mt-2">
                     {{ regform.password.label(class="sr-only") }}
-                    {{ regform.password(class="form-control", placeholder="strong password", minlength="4") }}
+                    {{ regform.password(class="form-control", placeholder="strong password", minlength="4", id="psswd") }}
                 </div>
-                <button type="submit" class="btn btn-primary btn-block mt-2">Submit</button>
+                <button type="submit" class="btn btn-primary btn-block mt-2" id="sende">Submit</button>
                 <a href="/login/login" class="btn btn-primary mt-2">Login</a>
             </form>
+            <div class="spinner-border text-secondary mt-1" id="loader" style="display: none;" role="status">
+                <span class="visually-hidden"></span>
+            </div>
         {% with messages = get_flashed_messages() %}
         {% if messages %}
         <div class="mt-1">
             {% for message in messages %}
-            <div class="alert alert-info">{{ message }}</div>
+            <div class="alert alert-info" id="emssgs">{{ message }}</div>
+            <script>
+                const gr = document.getElementById('emssgs')
+                const errarr = [
+                'please register with unique email address',
+                'confirmation email sent',
+                'email confirmation error',
+                'email confirmation error'
+                ]
+                if (gr && errarr.includes(gr.innerHTML)) {
+                    const lod = document.getElementById('loader');
+                    if (lod) lod.style.display = 'none';
+                }
+            </script>
             {% endfor %}
         </div>
         {% endif %}
         {% endwith %}
     </div>
-  
+    <script>
+
+        document.getElementById("sende").addEventListener("click", function () {
+            let a = document.getElementById("name")
+            let b = document.getElementById("email")
+            let c = document.getElementById("psswd")
+            if (a.value.length > 1 && b.value.includes("@") && c.value.length > 1) {
+                document.getElementById("loader").style.display = 'block';
+            }
+        })
+    </script>
 </div>
 {% endblock %}

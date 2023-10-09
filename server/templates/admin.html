@@ -2,21 +2,24 @@
 {% block content %}
 <div class="container">
     <div class="container mt-2">
-        <p style="font-size: larger;">Admin: lookup with email</p>
         {% if lookupform %}
-        <form method="POST" href="/admin" class="form-signin mt-2">
+        <p style="font-size: larger;">Admin: lookup with email</p>
+        <form method="POST" href="/admin" class="form-signin mt-1">
             {{ lookupform.hidden_tag() }}
             <div class="form-group">
                 {{ lookupform.email.label(class="sr-only") }}
                 {{ lookupform.email(class="form-control", placeholder="Email", autofocus="autofocus")
                 }}
             </div>
-            <button type="submit" class="btn btn-primary btn-block mt-1">Lookup</button>
-            <a href="{{ url_for('login', new='o') }}" class="btn btn-dark mt-1">Exit</a>
+            <div class="mt-2">
+                <button type="submit" class="btn btn-primary btn-block">Lookup</button>
+                <a href="{{ url_for('login', new='o') }}" class="btn btn-dark">Exit</a>
+            </div>
         </form>
         {% endif %}
         {% if inform %}
-        <form method="POST" href="/admin" class="form-signin mt-2">
+        <p style="font-size: larger;">Admin Login</p>
+        <form method="POST" href="/admin" class="form-signin mt-1">
             {{ inform.hidden_tag() }}
             <div class="form-group">
                 {{ inform.email.label(class="sr-only") }}
