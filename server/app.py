@@ -1,8 +1,9 @@
-from flask import Flask, request,render_template, redirect, session, g, flash, request, url_for
+from flask import Flask, request,render_template, redirect, session, g, flash, request, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
-from helper import read_blocklist_file, isValid
+from helper import read_blocklist_file, isValid, clearDir, validFile
 from functools import wraps
 from forms.forms import *
+import io
 import os
 import ssl
 import smtplib
@@ -10,6 +11,7 @@ import bcrypt
 import uuid
 import datetime
 from datetime import timedelta, datetime
+from werkzeug.utils import secure_filename
 # from sqlalchemy.sql import func
 from smtplib import SMTPAuthenticationError
 from email.message import EmailMessage
@@ -17,8 +19,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 # PSQL
-from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import create_engine, LargeBinary, Column, Integer, String, DateTime, UniqueConstraint
 from sqlalchemy.sql import text
 
 app = Flask(__name__)
@@ -56,6 +57,21 @@ class AuthUser(db.Model):
         self.user_email = user_email
         self.is_auth = is_auth
 
+class Images(db.Model):
+    __tablename__ = 'images'
+
+    img_id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, nullable=False)
+    img_path = db.Column(db.String(100), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('id', 'img_path', name='unique_id_img_path'),
+    )
+
+    def __init__(self, id, img_path):
+        self.id = id
+        self.img_path = img_path
+
 with app.app_context():
     db.create_all()
 
@@ -68,6 +84,21 @@ class RegisterForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
+
+def query(filename, path, id):
+    with open(filename, "rb") as f:
+        err = False
+        try:
+            image_record = Images(id=id, img_path=path)
+            db.session.add(image_record)
+            db.session.commit()
+        except Exception as error:
+            print(error)
+            err = True
+        f.close()
+    if err:
+        return {'error': 'bad file path'}
+    return {"image": [str(uuid.uuid4()), path]}
 
 
 def writeEmail(address, name, token):
@@ -174,17 +205,40 @@ def authNewU(t):
 @app.before_request
 def before_request():
     g.user = None
+    g.retrvd_images = []
     if 'user_id' in session:
         obj = load_user(session['user_id'])
-        if obj:
-            g.user = obj
+        if obj[0]:
+            g.retrvd_images = obj[0]
+        g.user = obj[1]
         
+def load_user(id):
+    stor = []
+    arra = db.session.query(Images).filter_by(id=id).all()
+    arrb = db.session.query(User).filter_by(id=id).first()
+    if arra and arrb:
+        user_folder = os.path.join(app.config['IMG_FOLDER']+str(arrb.id))
+        if os.path.exists(user_folder) and os.path.isdir(user_folder):
+            pass
+            # The folder exists, and it's a directory
+            # List all file paths in the user's folder
+        if not os.path.exists(user_folder):
+            os.makedirs(user_folder)
+        file_paths = []
+        for root, dirs, files in os.walk(user_folder):
+            for file in files:
+                file_paths.append(os.path.join(root, file))
+        # Extract file names from the full paths
+        file_paths = [os.path.basename(file) for file in file_paths]
+        if file_paths:
+            for j,k in enumerate(arra):
+                if k.img_path in file_paths:
+                    stor.append({"id": id, "img_id": k.img_id, "img_path": k.img_path})
+    return [stor, arrb]
+
 @app.route('/')
 def index():
     return render_template('index.html', home=True)
-
-def load_user(id):
-    return db.session.query(User).filter_by(id=id).first()
 # Create new account
 @app.route('/register',methods=['GET','POST'])
 def register():
@@ -281,10 +335,35 @@ def login(new):
                 flash('logged out')
         return render_template('login.html', user=g.user, form=form)
 
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET','POST'])
 def dashboard():
         n = request.args.get('new')
-        return render_template('dashboard.html',user=g.user, newuser=n)
+        form = UploadForm()
+        if request.method == 'POST' and form.validate_on_submit():
+            file = form.file.data
+            print(file.content_type)
+            if file.content_type.startswith('image/'):
+                tempkey = secure_filename(file.filename)
+                user_folder = os.path.join(app.config['IMG_FOLDER']+str(g.user.id))
+                if not os.path.exists(user_folder):
+                    os.makedirs(user_folder)
+                upload_path = os.path.join(user_folder, tempkey)
+                file.save(upload_path)
+                if validFile(g.retrvd_images, tempkey):
+                    image_info = query(upload_path, tempkey, g.user.id)
+                    if 'image' in image_info:
+                        try:
+                            g.retrvd_images.append({"img_id": image_info['image'][0], "id": g.user.id, "img_path": image_info['image'][1]})
+                        except Exception as e:
+                            print(e)
+                            flash('SQL server error')
+                    elif 'error' in image_info:
+                        flash('Error: There was an issue with the API request.')
+                else:
+                    flash('Duplicate img file.')
+            else:
+                flash('Invalid file input')
+        return render_template('dashboard.html',user=g.user, newuser=n, form=form, retrvd_images=g.retrvd_images)
 # Delete logged in user, on success redirect to register page
 @app.route('/settings/<username>')
 def settings(username):
@@ -383,6 +462,20 @@ def admin(route):
         
         return lookup()
     return render_template('admin.html', lookupform=lookupform, inform=inform)
+# user uploaded images
+@app.route('/images/<imgpath>')
+def uploaded_file(imgpath):
+    file_extension = 'jpg'
+    parts = imgpath.split('.')
+    if len(parts) > 1:
+        file_extension = parts[-1]
+    file_path = os.path.join(app.config['IMG_FOLDER']+str(g.user.id), imgpath)
+    if os.path.exists(file_path):
+        # Send the file
+        return send_file(file_path, mimetype='image/jpeg', download_name=f'yourimage.{file_extension}')
+    else:
+        # Handle the case where the file does not exist
+        return "File not found", 404  # You can customize the error response as needed
 # utility link to logout session user.
 @app.route('/logout')
 def logout():

@@ -18,3 +18,4 @@ Deploy
 gcloud builds submit --tag gcr.io/<PROJECTID>/login
 gcloud run deploy --image gcr.io/<PROJECTID>/login:latest
 ```
+In production include /img directories.

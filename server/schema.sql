@@ -15,3 +15,11 @@ AFTER INSERT ON users
 FOR EACH ROW
 EXECUTE FUNCTION insert_auth_user();
 
+-- images table
+create table images (
+    img_id serial PRIMARY KEY, id int not null, img_path text not null
+);
+
+ALTER TABLE images
+ADD CONSTRAINT unique_id_img_path UNIQUE (id, img_path);
+
