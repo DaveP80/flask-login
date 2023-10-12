@@ -1,4 +1,4 @@
-from flask import Flask, request,render_template, redirect, session, g, flash, request, url_for, send_file
+from flask import Flask, render_template, redirect, session, g, flash, request, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
 from helper import read_blocklist_file, isValid, clearDir, validFile
 from functools import wraps
@@ -19,7 +19,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 # PSQL
-from sqlalchemy import create_engine, LargeBinary, Column, Integer, String, DateTime, UniqueConstraint
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, UniqueConstraint
 from sqlalchemy.sql import text
 
 app = Flask(__name__)
