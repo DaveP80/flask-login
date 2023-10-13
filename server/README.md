@@ -9,6 +9,12 @@ source venv/bin/activate
 pip3 install -r requirements.txt
 touch .env
 ```
+Get your SECRET_KEY with
+```
+import secrets
+secrets.token_urlsafe(16)
+secrets
+```
 Production run
 ```py
 app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
