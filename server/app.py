@@ -442,6 +442,7 @@ def admin(route):
                             db.session.commit()
                             fempu = None
                             fa_user = aa_user
+                            tempstring = f'/admin/lookup?del={fa_user.user_id}'
                             flash('user is deactivated')
                         else: flash('database or query string error')
                 except:
